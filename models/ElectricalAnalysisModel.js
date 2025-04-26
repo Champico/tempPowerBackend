@@ -18,6 +18,7 @@ class ElectricalAnalysisModel{
 
   async getDato(idDispositivo, parametros, campo) {
 
+
     const consultaTodosLosValores = `
       SELECT m.${campo} AS valor, m.fecha_hora
       FROM mediciones m
@@ -41,12 +42,17 @@ class ElectricalAnalysisModel{
         db.query(consultaMinimoMaximo, [idDispositivo, parametros.fechaInicio, parametros.fechaFinal])
       ]);
 
+      const fecha = await this.obtenerFechaActualStringTimestamp()
+
       if (!filas.length) {
-        console.log('No se encontraron mediciones en ese periodo.');
-        return {"id":idDispositivo, "fechaInicio": parametros.fechaInicio, "fechaFinal": parametros.fechaFinal, "tipoDeDato": campo, "UnidadDeMedida": this.unidadDeMedida[campo], "FechaDeConsulta": this.obtenerFechaActualStringTimestamp, "datos": []};
+        return {"id":idDispositivo, "fechaInicio": parametros.fechaInicio, "fechaFinal": parametros.fechaFinal, "tipoDeDato": campo, "UnidadDeMedida": this.unidadDeMedida[campo], "FechaDeConsulta": fecha, "datos": []};
       }
-  
-      return {"id":idDispositivo, "fechaInicio": parametros.fechaInicio, "fechaFinal": parametros.fechaFinal, "tipoDeDato": campo, "UnidadDeMedida": this.unidadDeMedida[campo], "FechaDeConsulta": this.obtenerFechaActualStringTimestamp, "minimo": minimoYMaximo.minimo, "maximo": minimoYMaximo.maximo, "datos": filas};
+
+      const min = minimoYMaximo[0].minimo !== null ? minimoYMaximo[0].minimo : 0;
+      const max = minimoYMaximo[0].maximo !== null ? minimoYMaximo[0].maximo : 0;
+
+      return {"id":idDispositivo, "fechaInicio": parametros.fechaInicio, "fechaFinal": parametros.fechaFinal, "tipoDeDato": campo, "UnidadDeMedida": this.unidadDeMedida[campo], "FechaDeConsulta": fecha, "minimo": min, "maximo": max, "datos": filas};
+      
     } catch (error) {
       console.error(`Error al obtener ${campo}:`, error);
       return [];
@@ -54,26 +60,30 @@ class ElectricalAnalysisModel{
   }
   
   mediciones = {
-    getVoltaje: (idDispositivo, parametros) => this.getDato(idDispositivo, parametros, 'voltaje'),
-    getCorriente: (idDispositivo, parametros) => this.getDato(idDispositivo, parametros, 'corriente'),
-    getPotenciaActiva: (idDispositivo, parametros) => this.getDato(idDispositivo, parametros, 'potencia'),
-    getFrecuencia: (idDispositivo, parametros) => this.getDato(idDispositivo, parametros, 'frecuencia'),
-    getFactorPotencia: (idDispositivo, parametros) => this.getDato(idDispositivo, parametros, 'factor_potencia')
+    getVoltaje: async (idDispositivo, parametros) => this.getDato(idDispositivo, parametros, 'voltaje'),
+    getCorriente: async (idDispositivo, parametros) => this.getDato(idDispositivo, parametros, 'corriente'),
+    getPotenciaActiva: async (idDispositivo, parametros) => this.getDato(idDispositivo, parametros, 'potencia'),
+    getFrecuencia: async (idDispositivo, parametros) => this.getDato(idDispositivo, parametros, 'frecuencia'),
+    getFactorPotencia: async (idDispositivo, parametros) => this.getDato(idDispositivo, parametros, 'factor_potencia')
 };
 
-obtenerFechaActualStringTimestamp () {
-  let date = new Date();
-  const pad = (n) => n.toString().padStart(2, '0');
+async obtenerFechaActualStringTimestamp () {
+  try{
+    let date = new Date();
+    const pad = (n) => n.toString().padStart(2, '0');
 
-  const año = date.getFullYear();
-  const mes = pad(date.getMonth() + 1);
-  const dia = pad(date.getDate());
+    const año = date.getFullYear();
+    const mes = pad(date.getMonth() + 1);
+    const dia = pad(date.getDate());
 
-  const horas = pad(date.getHours());
-  const minutos = pad(date.getMinutes());
-  const segundos = pad(date.getSeconds());
+    const horas = pad(date.getHours());
+    const minutos = pad(date.getMinutes());
+    const segundos = pad(date.getSeconds());
 
-  return `${año}-${mes}-${dia} ${horas}:${minutos}:${segundos}`;
+    return `${año}-${mes}-${dia} ${horas}:${minutos}:${segundos}`;
+  }catch(error){
+    return "Fecha no disponible"
+  }
 }
 
 

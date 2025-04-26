@@ -41,6 +41,13 @@ class ElectricalAnalysisController {
       "Query params": "fechaInicio (YYYY:MM:DD hh:mm:ss), fechaFinal (YYYY:MM:DD hh:mm:ss)",
       "Description":"Obtener el factor de potencia de un dispositivo en un periodo de tiempo"
     },
+    {
+      "Path": "/electrical_analysis/consumo_d/:id",
+      "Tipo de peticion HTTP":"GET", 
+      "Path params": "id (int)",
+      "Query params": "fechaInicio (YYYY:MM:DD hh:mm:ss), fechaFinal (YYYY:MM:DD hh:mm:ss)",
+      "Description":"Obtener el consumo de un dispositivo en un periodo de tiempo"
+    },
    ]
   }
 
