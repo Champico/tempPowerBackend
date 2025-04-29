@@ -141,6 +141,89 @@ getConsumo = async (idDispositivo, parametros) => {
 
 
 
+getConsumoPorDiaPeriodoDeTiempo = async (idDispositivo, parametros) => {
+  try {
+    const consultaPotencias = `
+      SELECT m.potencia AS valor, m.fecha_hora
+      FROM mediciones m
+      INNER JOIN sensores s ON m.sensor_id = s.id
+      INNER JOIN dispositivos d ON s.dispositivo_id = d.id
+      WHERE d.id = ? AND m.fecha_hora BETWEEN ? AND ?
+      ORDER BY m.fecha_hora ASC
+    `;
+
+    const [filas] = await db.query(consultaPotencias, [idDispositivo, parametros.fechaInicio, parametros.fechaFinal]);
+
+    if (!filas.length) {
+      console.log('No se encontraron mediciones en ese periodo.');
+      return { consumoTotalKWh: 0, consumosPorDia: [] };
+    }
+
+    const minutosPorMedicion = 5;
+    const horasPorMedicion = minutosPorMedicion / 60; // Cada medición es 5 minutos = 0.0833 horas
+
+    const consumosPorMedicion = filas.map(medicion => {
+      const consumoKWh = (medicion.valor / 1000) * horasPorMedicion;
+      return {
+        fecha_hora: medicion.fecha_hora,
+        potenciaW: medicion.valor,
+        consumoKWh: consumoKWh
+      };
+    });
+
+    const consumoTotalKWh = consumosPorMedicion.reduce((total, medicion) => total + medicion.consumoKWh, 0);
+
+    let mayorConsumo = consumosPorMedicion[0];
+    let menorConsumo = consumosPorMedicion[0];
+
+    for (const medicion of consumosPorMedicion) {
+      if (medicion.consumoKWh > mayorConsumo.consumoKWh) {
+        mayorConsumo = medicion;
+      }
+      if (medicion.consumoKWh < menorConsumo.consumoKWh) {
+        menorConsumo = medicion;
+      }
+    }
+
+    // Obtener el consumo total por día
+    const consumosPorDia = consumosPorMedicion.reduce((acc, medicion) => {
+      // Convertir a string ISO y separar la fecha
+      const fecha = new Date(medicion.fecha_hora).toISOString().split('T')[0]; // Solo la fecha (YYYY-MM-DD)
+      
+      if (!acc[fecha]) {
+        acc[fecha] = 0;
+      }
+      acc[fecha] += medicion.consumoKWh;
+      return acc;
+    }, {});
+
+    // Convertir el objeto de consumosPorDia en un arreglo
+    const consumosPorDiaArray = Object.keys(consumosPorDia).map(fecha => ({
+      fecha: fecha,
+      consumoKWh: consumosPorDia[fecha]
+    }));
+
+    return {
+      id: idDispositivo,
+      fechaInicio: parametros.fechaInicio,
+      fechaFinal: parametros.fechaFinal,
+      ConsumoTotalKWh: consumoTotalKWh,
+      tipoDeDato: "Consumo",
+      UnidadDeMedida: "Kilowat hora (kWh)",
+      FechaDeConsulta: this.obtenerFechaActualStringTimestamp,
+      minimo: menorConsumo,
+      maximo: mayorConsumo,
+      consumosPorDia: consumosPorDiaArray
+    };
+
+  } catch (error) {
+    console.error('Error al calcular el consumo de kWh:', error);
+    throw error;
+  }
+};
+
+
+
 }
 
 

@@ -186,7 +186,7 @@ class ElectricalAnalysisController {
   };
 
 
-  getConsumo = async (req, res) => {
+  getConsumoTotalPeriodoDeTiempo = async (req, res) => {
 
     const { id } = req.params;
     const { fechaInicio, fechaFinal } = req.query;
@@ -201,6 +201,34 @@ class ElectricalAnalysisController {
 
     try {
       const datos = await this.electricalAnalysisModel.getConsumo(
+        id,
+        { fechaInicio, fechaFinal }
+      );
+      res.status(200).json(datos);
+    } catch (error) {
+      res
+        .status(500)
+        .json({ message: "Error al obtener el consumo", error: error.message });
+    }
+  };
+
+
+
+  getConsumoPorDiaPeriodoDeTiempo = async (req, res) => {
+
+    const { id } = req.params;
+    const { fechaInicio, fechaFinal } = req.query;
+  
+    const validacion = this.validateParams(id, { fechaInicio, fechaFinal });
+
+
+
+    if (validacion !== true) {
+      return res.status(400).json({ message: validacion });
+    }
+
+    try {
+      const datos = await this.electricalAnalysisModel.getConsumoPorDiaPeriodoDeTiempo(
         id,
         { fechaInicio, fechaFinal }
       );
